@@ -51,15 +51,35 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GameActivity extends SDLActivity {
+    public interface Adapter {
+        void handle(int resultCode, Intent data);
+    }
+    private static final HashMap<Integer, Adapter> adapterList = new HashMap<>();
     private static final String TAG = "GameActivity";
     public static final int RECORD_AUDIO_REQUEST_CODE = 3;
-
+    public static GameActivity gameActivity = null;
+    private static int count = 0;
     protected Vibrator vibrator;
     protected boolean shortEdgesMode;
     protected final int[] recordAudioRequestDummy = new int[1];
     private Uri delayedUri = null;
     private String[] args;
     private boolean isFused;
+
+
+    public GameActivity() {
+        super();
+        gameActivity=this;
+    }
+
+    public static GameActivity getGameActivity() {
+        return gameActivity;
+    }
+
+    public static int registerAdapter(Adapter adapter) {
+        adapterList.put(++count, adapter);
+        return count;
+    }
 
     private static native void nativeSetDefaultStreamValues(int sampleRate, int framesPerBurst);
 
@@ -88,6 +108,15 @@ public class GameActivity extends SDLActivity {
     @Override
     protected String[] getArguments() {
         return args;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Adapter adapter = adapterList.get(requestCode);
+        if (adapter!=null) {
+            adapter.handle(resultCode, data);
+        }
     }
 
     @Override
