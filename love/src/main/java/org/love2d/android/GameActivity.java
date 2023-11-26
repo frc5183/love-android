@@ -54,6 +54,10 @@ import androidx.annotation.Keep;
 import androidx.core.app.ActivityCompat;
 
 public class GameActivity extends SDLActivity {
+    public interface Adapter {
+        void handle(int resultCode, Intent data);
+    }
+    private static final HashMap<Integer, Adapter> adapterList = new HashMap<>();
     private static DisplayMetrics metrics = null;
     private static String gamePath = "";
     private static Vibrator vibrator = null;
@@ -61,6 +65,8 @@ public class GameActivity extends SDLActivity {
     protected final int[] recordAudioRequestDummy = new int[1];
     public static final int EXTERNAL_STORAGE_REQUEST_CODE = 2;
     public static final int RECORD_AUDIO_REQUEST_CODE = 3;
+    public static GameActivity gameActivity = null;
+    private static int count = 0;
     private static boolean immersiveActive = false;
     private static boolean needToCopyGameInArchive = false;
     private boolean storagePermissionUnnecessary = false;
@@ -71,6 +77,19 @@ public class GameActivity extends SDLActivity {
     public int safeAreaBottom = 0;
     public int safeAreaRight = 0;
 
+    public GameActivity() {
+        super();
+        gameActivity=this;
+    }
+    
+    public static GameActivity getGameActivity() {
+        return gameActivity;
+    }
+
+    public static int registerAdapter(Adapter adapter) {
+        adapterList.put(++count, adapter);
+        return count;
+    }
     private static native void nativeSetDefaultStreamValues(int sampleRate, int framesPerBurst);
 
     @Override
@@ -96,6 +115,15 @@ public class GameActivity extends SDLActivity {
             return libname;
         } else {
             return getContext().getApplicationInfo().nativeLibraryDir + "/" + libname;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Adapter adapter = adapterList.get(requestCode);
+        if (adapter!=null) {
+            adapter.handle(resultCode, data);
         }
     }
 
